@@ -95,6 +95,7 @@ class DeployService
     execute_and_log_errors(deploy) { send_deploy_email(deploy) }
     execute_and_log_errors(deploy) { send_failed_deploy_email(deploy) }
     execute_and_log_errors(deploy) { notify_outbound_webhooks(deploy) }
+    execute_and_log_errors(deploy) { tag_gcr_docker_images(deploy) }
   end
   add_method_tracer :send_after_notifications
 
@@ -121,5 +122,31 @@ class DeployService
 
   def send_sse_deploy_update(type, deploy)
     SseRailsEngine.send_event('deploys', type: type, deploy: DeploySerializer.new(deploy, root: nil))
+  end
+
+  # Note: not tagging builds that are shared between multiple project since that would be confusing
+  def tag_gcr_docker_images(deploy)
+    return unless ENV["DOCKER_FEATURE"]
+    return unless deploy.succeeded?
+    return unless builds = deploy.project.builds.
+      where(git_sha: deploy.job.commit).where.not(docker_repo_digest: nil).to_a.presence
+
+    builds.each do |build|
+      digest = build.docker_repo_digest
+      next unless digest =~ /(^|\/|\.)gcr.io\// # gcr.io or https://gcr.io or region like asia.gcr.io
+      base = digest.split('@').first
+      tag = deploy.stage.permalink
+      success, output = Samson::CommandExecutor.execute(
+        "gcloud", *container_in_beta, "container", "images", "add-tag", digest, "#{base}:#{tag}", "--quiet"
+      )
+      deploy.job.append_output! "Tagging GCR image:\n#{digest} as #{tag}\n#{output}\n#{success ? "SUCCESS" : "FAILED"}\n"
+    end
+  end
+
+  def container_in_beta
+    @@container_in_beta ||= begin
+      beta = Samson::CommandExecutor.execute("gcloud", "--version").last.match?(/Google Cloud SDK 14\d\./)
+      beta ? ["beta"] : []
+    end
   end
 end

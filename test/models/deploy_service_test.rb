@@ -220,6 +220,11 @@ describe DeployService do
   end
 
   describe "after notifications" do
+    def run_deploy
+      service.deploy(stage, reference: reference)
+      job_execution.send(:run)
+    end
+
     before do
       SseRailsEngine.expects(:send_event).with('deploys', type: 'finish').never
       stage.stubs(:create_deploy).returns(deploy)
@@ -237,9 +242,7 @@ describe DeployService do
       it "sends email notifications if the stage has email addresses" do
         DeployMailer.expects(:deploy_email).with(anything, ['a@b.com', 'b@c.com']).
           returns(stub("DeployMailer", deliver_now: true))
-
-        service.deploy(stage, reference: reference)
-        job_execution.send(:run)
+        run_deploy
       end
 
       it "does not fail all callbacks when 1 callback fails" do
@@ -247,16 +250,12 @@ describe DeployService do
         service.expects(:send_sse_deploy_update).with('finish', anything).raises # first callback
         Airbrake.expects(:notify)
         DeployMailer.expects(:deploy_email).returns(stub(deliver_now: true))
-        service.deploy(stage, reference: reference)
-        job_execution.send(:run)
+        run_deploy
       end
     end
 
     it "sends after_deploy hook" do
-      record_hooks(:after_deploy) do
-        service.deploy(stage, reference: reference)
-        job_execution.send(:run)
-      end.must_equal [[deploy, nil]]
+      record_hooks(:after_deploy) { run_deploy }.must_equal [[deploy, nil]]
     end
 
     it "email notification for failed deploys" do
@@ -264,8 +263,50 @@ describe DeployService do
 
       DeployMailer.expects(:deploy_failed_email).returns(stub("DeployMailer", deliver_now: true))
 
-      service.deploy(stage, reference: reference)
-      job_execution.send(:run)
+      run_deploy
+    end
+
+    describe "#tag_docker_images" do
+      let(:build) { builds(:docker_build) }
+
+      with_env DOCKER_FEATURE: '1'
+      before { build.update_column :git_sha, deploy.job.commit }
+
+      it "tags stage and deploy groups" do
+        DockerBuilderService.any_instance.expects(:push_tag).with('staging')
+        DockerBuilderService.any_instance.expects(:push_tag).with('pod100')
+        run_deploy
+      end
+
+      it "does not tag when missing image ids" do
+        DockerBuilderService.any_instance.expects(:push_tag).never
+        build.update_column :docker_image_id, nil
+        run_deploy
+      end
+
+      it "does not tag when not finding build" do
+        DockerBuilderService.any_instance.expects(:push_tag).never
+        build.update_column :git_sha, 'sdfsdfsfsdfsd'
+        run_deploy
+      end
+
+      it "does not tag without DOCKER_FEATURE" do
+        with_env DOCKER_FEATURE: nil do
+          DockerBuilderService.any_instance.expects(:push_tag).never
+          run_deploy
+        end
+      end
+
+      it "does not tag when failed" do
+        deploy.job.update_column :status, 'failed'
+        DockerBuilderService.any_instance.expects(:push_tag).never
+        run_deploy
+      end
+
+      it "does not fail when image was locally removed" do
+        DockerBuilderService.any_instance.expects(:push_tag).raises(Docker::Error::NotFoundError)
+        run_deploy
+      end
     end
   end
 end

@@ -431,4 +431,11 @@ describe DockerBuilderService do
       end
     end
   end
+
+  describe "#push_tag" do
+    it "tags the image" do
+      service.expects(:push_image_to_registries).with(tag: 'foo', override_tag: true)
+      service.push_tag 'foo'
+    end
+  end
 end

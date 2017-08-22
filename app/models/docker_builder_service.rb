@@ -105,6 +105,11 @@ class DockerBuilderService
     JobExecution.start_job(@execution)
   end
 
+  def push_tag(tag)
+    push_image_to_registries tag: tag, override_tag: true
+    output.to_s
+  end
+
   private
 
   # TODO: not calling before_docker_build hooks since we don't have a temp directory
