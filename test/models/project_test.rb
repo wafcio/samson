@@ -95,33 +95,33 @@ describe Project do
     end
   end
 
-  describe "#github_repo" do
+  describe "#user_repo_part" do
     it "returns the user/repo part of the repository URL" do
       project = Project.new(repository_url: "git@github.com:foo/bar.git")
-      project.github_repo.must_equal "foo/bar"
+      project.user_repo_part.must_equal "foo/bar"
     end
 
     it "handles user, organisation and repository names with hyphens" do
       project = Project.new(repository_url: "git@github.com:inlight-media/lighthouse-ios.git")
-      project.github_repo.must_equal "inlight-media/lighthouse-ios"
+      project.user_repo_part.must_equal "inlight-media/lighthouse-ios"
     end
 
     it "handles repository names with dashes or dots" do
       project = Project.new(repository_url: "git@github.com:angular/angular.js.git")
-      project.github_repo.must_equal "angular/angular.js"
+      project.user_repo_part.must_equal "angular/angular.js"
 
       project = Project.new(repository_url: "git@github.com:zendesk/demo_apps.git")
-      project.github_repo.must_equal "zendesk/demo_apps"
+      project.user_repo_part.must_equal "zendesk/demo_apps"
     end
 
     it "handles https urls" do
       project = Project.new(repository_url: "https://github.com/foo/bar.git")
-      project.github_repo.must_equal "foo/bar"
+      project.user_repo_part.must_equal "foo/bar"
     end
 
     it "works if '.git' is not at the end" do
       project = Project.new(repository_url: "https://github.com/foo/bar")
-      project.github_repo.must_equal "foo/bar"
+      project.user_repo_part.must_equal "foo/bar"
     end
   end
 

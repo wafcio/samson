@@ -45,7 +45,7 @@ class Changeset::PullRequest
 
   def self.changeset_from_webhook(project, payload)
     data = Sawyer::Resource.new(Octokit.agent, payload.fetch('pull_request'))
-    new(project.github_repo, data)
+    new(project.user_repo_part, data)
   end
 
   # Webhook events that are valid should be related to a pr code push or someone adding [samson review]

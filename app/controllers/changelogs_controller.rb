@@ -11,6 +11,6 @@ class ChangelogsController < ApplicationController
     @start_date = Date.strptime(params[:start_date], '%Y-%m-%d')
     @end_date = Date.strptime(params[:end_date], '%Y-%m-%d')
 
-    @changeset = Changeset.new(current_project.github_repo, "master@{#{@start_date}}", "master@{#{@end_date}}")
+    @changeset = Changeset.new(current_project.user_repo_part, "master@{#{@start_date}}", "master@{#{@end_date}}")
   end
 end

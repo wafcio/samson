@@ -84,16 +84,6 @@ class Project < ActiveRecord::Base
     repository_url.scan(%r{[:/]([A-Za-z0-9-]+/[\w.-]+?)(?:\.git)?$}).join
   end
 
-  # TODO: remove, this is misleading
-  def github_repo
-    user_repo_part
-  end
-
-  # TODO: remove, this is misleading
-  def gitlab_repo
-    user_repo_part
-  end
-
   def repository_directory
     @repository_directory ||= Digest::MD5.hexdigest([repository_url, id].join)
   end
@@ -145,11 +135,11 @@ class Project < ActiveRecord::Base
   private
 
   def repository_homepage_github
-    "#{Rails.application.config.samson.github.web_url}/#{github_repo}"
+    "#{Rails.application.config.samson.github.web_url}/#{user_repo_part}"
   end
 
   def repository_homepage_gitlab
-    "#{Rails.application.config.samson.gitlab.web_url}/#{gitlab_repo}"
+    "#{Rails.application.config.samson.gitlab.web_url}/#{user_repo_part}"
   end
 
   def deploys_by_group(before, include_failed_deploys = false)
