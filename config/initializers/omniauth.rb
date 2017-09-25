@@ -58,6 +58,8 @@ Rails.application.config.middleware.use OmniAuth::Builder do
 
   if Rails.application.config.samson.auth.bitbucket
     require 'omniauth-bitbucket'
+    require 'dep_ext/omniauth_bitbucket'
+
     provider :bitbucket,
       ENV.fetch('BITBUCKET_KEY'),
       ENV.fetch('BITBUCKET_SECRET')
