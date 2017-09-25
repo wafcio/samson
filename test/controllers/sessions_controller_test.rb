@@ -300,6 +300,10 @@ describe SessionsController do
         info: Hashie::Mash.new(
           name: user.name,
           email: user.email
+        ),
+        credentials: Hashie::Mash.new(
+          token: 'foobar',
+          refresh_token: 'foobar'
         )
       )
     end

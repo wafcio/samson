@@ -534,6 +534,8 @@ ActiveRecord::Schema.define(version: 20170922174850) do
     t.string "time_format", default: "relative", null: false
     t.datetime "last_login_at"
     t.datetime "last_seen_at"
+    t.string "access_token"
+    t.string "refresh_token"
     t.index ["external_id", "deleted_at"], name: "index_users_on_external_id_and_deleted_at"
   end
 
